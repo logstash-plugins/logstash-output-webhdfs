@@ -52,8 +52,11 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   DEFAULT_VERSION = 1
   MINIMUM_COMPATIBLE_VERSION = 1
 
-  # The server name and port for webhdfs/httpfs connections.
-  config :server, :validate => :string, :required => true
+  # The server name for webhdfs/httpfs connections.
+  config :host, :validate => :string, :required => true
+
+  # The server port for webhdfs/httpfs connections.
+  config :port, :validate => :number, :default => 50070
 
   # The Username for webhdfs.
   config :user, :validate => :string, :required => true
@@ -135,7 +138,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       end
     end
     @files = {}
-    @host, @port = @server.split(':')
     @client = prepare_client(@host, @port, @user)
     # Test client connection.
     begin
