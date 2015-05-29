@@ -147,9 +147,9 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       raise
     end
     buffer_initialize(
-    :max_items => @flush_size,
-    :max_interval => @idle_flush_time,
-    :logger => @logger
+      :max_items => @flush_size,
+      :max_interval => @idle_flush_time,
+      :logger => @logger
     )
   end # def register
 
