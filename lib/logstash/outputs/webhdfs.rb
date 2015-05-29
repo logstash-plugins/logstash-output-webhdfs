@@ -24,20 +24,18 @@ require "stud/buffer"
 #
 # [source,ruby]
 # ----------------------------------
-# webhdfs {
-#   server => "127.0.0.1:50070"         # (required)
-#   path => "/user/logstash/dt=%{+YYYY-MM-dd}/logstash-%{+HH}.log"  # (required)
-#   user => "hue"                       # (optional)
-#   message_format => "%{@source_host}" # (optional)
-#   idle_flush_time => 10               # (optional)
-#   flush_size => 50                    # (optional)
-#   open_timeout => 15                  # (optional)
-#   read_timeout => 15                  # (optional)
-#   use_httpfs => true                  # (optional)
-#   retry_interval => 1                 # (optional)
-#   retry_times => 3                    # (optional)
-#   compress => "snappy"                # (optional)
-#   remove_at_timestamp => false        # (optional)
+# input {
+#   ...
+# }
+# filter {
+#   ...
+# }
+# output {
+#   webhdfs {
+#     server => "127.0.0.1:50070"         # (required)
+#     path => "/user/logstash/dt=%{+YYYY-MM-dd}/logstash-%{+HH}.log"  # (required)
+#     user => "hue"                       # (required)
+#   }
 # }
 # ----------------------------------
 #
@@ -58,7 +56,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   config :server, :validate => :string, :required => true
 
   # The Username for webhdfs.
-  config :user, :validate => :string, :required => false
+  config :user, :validate => :string, :required => true
 
   # The path to the file to write to. Event fields can be used here,
   # as well as date fields in the joda time format, e.g.:
