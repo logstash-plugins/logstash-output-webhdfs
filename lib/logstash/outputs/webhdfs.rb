@@ -82,10 +82,10 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # Sending data to webhdfs if event count is above, even if store_interval_in_secs is not reached.
   config :flush_size, :validate => :number, :default => 500
 
-  # WebHdfs open timeout, default 30s (in ruby net/http).
+  # WebHdfs open timeout, default 30s.
   config :open_timeout, :validate => :number, :default => 30
 
-  # The WebHdfs read timeout, default 30s (in ruby net/http).
+  # The WebHdfs read timeout, default 30s.
   config :read_timeout, :validate => :number, :default => 30
 
   # Use httpfs mode if set to true, else webhdfs.
