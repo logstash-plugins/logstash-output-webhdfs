@@ -48,7 +48,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   milestone 1
 
   MAGIC = "\x82SNAPPY\x0".force_encoding Encoding::ASCII_8BIT
-  end
   DEFAULT_VERSION = 1
   MINIMUM_COMPATIBLE_VERSION = 1
 
@@ -276,4 +275,4 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   def teardown
     buffer_flush(:final => true)
   end # def teardown
-end
+end # class LogStash::Outputs::WebHdfs
