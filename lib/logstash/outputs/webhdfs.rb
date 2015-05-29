@@ -97,7 +97,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # How long should we wait between retries.
   config :retry_interval, :validate => :number, :default => 0.5
 
-  # How many times should we retry.
+  # How many times should we retry. If retry_times is exceeded, an error will be logged and the event will be discarded.
   config :retry_times, :validate => :number, :default => 5
 
   # Compress output. One of ['none', 'snappy', 'gzip']
@@ -161,16 +161,12 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
 
   def prepare_client(host, port, username)
     client = WebHDFS::Client.new(host, port, username)
-    if @use_httpfs
-      client.httpfs_mode = true
-    end
+    client.httpfs_mode = @use_httpfs
     client.open_timeout = @open_timeout
     client.read_timeout = @read_timeout
-    if @retry_known_errors
-      client.retry_known_errors = true
-      client.retry_interval = @retry_interval if @retry_interval
-      client.retry_times = @retry_times if @retry_times
-    end
+    client.retry_known_errors = @retry_known_errors
+    client.retry_interval = @retry_interval if @retry_interval
+    client.retry_times = @retry_times if @retry_times
     client
   end
 
