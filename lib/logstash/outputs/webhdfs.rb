@@ -119,18 +119,21 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       require 'webhdfs'
     rescue LoadError
       @logger.error("Module webhdfs could not be loaded.")
+      raise
     end
     if @compression == "gzip"
       begin
         require "zlib"
       rescue LoadError
         @logger.error("Gzip compression selected but zlib module could not be loaded.")
+        raise
       end
     elsif @compression == "snappy"
       begin
         require "snappy"
       rescue LoadError
         @logger.error("Snappy compression selected but snappy module could not be loaded.")
+        raise
       end
     end
     @files = {}
@@ -141,6 +144,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       @client.list('/')
     rescue => e
       @logger.error("Webhdfs check request failed. (namenode: #{@client.host}:#{@client.port}, Exception: #{e.message})")
+      raise
     end
     buffer_initialize(
     :max_items => @flush_size,
