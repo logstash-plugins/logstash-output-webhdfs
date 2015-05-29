@@ -49,10 +49,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   config_name "webhdfs"
   milestone 1
 
-  if RUBY_VERSION[0..2] == '1.8'
-    MAGIC = "\x82SNAPPY\x0"
-  else
-    MAGIC = "\x82SNAPPY\x0".force_encoding Encoding::ASCII_8BIT
+  MAGIC = "\x82SNAPPY\x0".force_encoding Encoding::ASCII_8BIT
   end
   DEFAULT_VERSION = 1
   MINIMUM_COMPATIBLE_VERSION = 1
