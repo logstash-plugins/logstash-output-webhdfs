@@ -6,7 +6,7 @@ require 'json'
 
 describe 'outputs/webhdfs' do
 
-  webhdfs_server = 'localhost'
+  webhdfs_host = 'localhost'
   webhdfs_port = 50070
   webhdfs_user = 'hadoop'
   path_to_testlog = '/user/hadoop/test.log'
@@ -20,12 +20,12 @@ describe 'outputs/webhdfs' do
         'host' => 'localhost',
         '@timestamp' => LogStash::Timestamp.now)
 
-  default_config =  { 'server' => webhdfs_server + ':' + webhdfs_port.to_s,
+  default_config =  { 'host' => webhdfs_host,
                       'user' => webhdfs_user,
                       'path' => path_to_testlog,
                       'compression' => 'none' }
 
-  client = WebHDFS::Client.new(webhdfs_server, webhdfs_port, webhdfs_user)
+  client = WebHDFS::Client.new(webhdfs_host, webhdfs_port, webhdfs_user)
 
   context 'when initializing' do
 
@@ -40,6 +40,7 @@ describe 'outputs/webhdfs' do
 
     it 'should have default config values' do
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(default_config)
+      insist { subject.port } == 50070
       insist { subject.idle_flush_time } == 1
       insist { subject.flush_size } == 500
       insist { subject.open_timeout } == 30
