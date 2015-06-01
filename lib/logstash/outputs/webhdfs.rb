@@ -236,7 +236,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     # Encode data to ASCII_8BIT (binary)
     data= data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
     buffer = StringIO.new('', 'w')
-    buffer.set_encoding Encoding::ASCII_8BIT unless RUBY_VERSION =~ /^1\.8/
+    buffer.set_encoding Encoding::ASCII_8BIT
     compressed = Snappy.deflate(data)
     buffer << [compressed.size, compressed].pack("Na*")
     buffer.string
@@ -246,7 +246,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     # Encode data to ASCII_8BIT (binary)
     data= data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
     buffer = StringIO.new
-    buffer.set_encoding Encoding::ASCII_8BIT unless RUBY_VERSION =~ /^1\.8/
+    buffer.set_encoding Encoding::ASCII_8BIT
     chunks = data.scan(/.{1,#{@snappy_bufsize}}/m)
     chunks.each do |chunk|
       compressed = Snappy.deflate(chunk)
