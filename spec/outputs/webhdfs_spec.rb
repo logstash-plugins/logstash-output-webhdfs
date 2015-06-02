@@ -6,7 +6,7 @@ require 'json'
 
 describe 'outputs/webhdfs' do
 
-  webhdfs_host = 'localhost'
+  webhdfs_host = '172.16.1.225' #'localhost'
   webhdfs_port = 50070
   webhdfs_user = 'hadoop'
   path_to_testlog = '/user/hadoop/test.log'
@@ -35,23 +35,23 @@ describe 'outputs/webhdfs' do
 
     it 'should register with default values' do
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(default_config)
-      expect { subject.register }.to_not raise_error
+      expect { subject.register() }.to_not raise_error
     end
 
     it 'should have default config values' do
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(default_config)
-      insist { subject.port } == 50070
-      insist { subject.idle_flush_time } == 1
-      insist { subject.flush_size } == 500
-      insist { subject.open_timeout } == 30
-      insist { subject.read_timeout } == 30
-      insist { subject.use_httpfs } == false
-      insist { subject.retry_known_errors } == true
-      insist { subject.retry_interval } == 0.5
-      insist { subject.retry_times } == 5
-      insist { subject.snappy_bufsize } == 32768
-      insist { subject.snappy_format } == 'stream'
-      insist { subject.remove_at_timestamp } == true
+      expect(subject.port).to eq(50070)
+      expect(subject.idle_flush_time).to eq(1)
+      expect(subject.flush_size).to eq(500)
+      expect(subject.open_timeout).to eq(30)
+      expect(subject.read_timeout).to eq(30)
+      expect(subject.use_httpfs).to eq(false)
+      expect(subject.retry_known_errors).to eq(true)
+      expect(subject.retry_interval).to eq(0.5)
+      expect(subject.retry_times).to eq(5)
+      expect(subject.snappy_bufsize).to eq(32768)
+      expect(subject.snappy_format).to eq('stream')
+      expect(subject.remove_at_timestamp).to eq(true)
     end
   end
 
@@ -64,19 +64,19 @@ describe 'outputs/webhdfs' do
 
     it 'should match the event data' do
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register
+      subject.register()
       subject.receive(event)
-      subject.teardown
-      insist { client.read(current_logfile_name).strip } == event.to_json
+      subject.teardown()
+      expect(client.read(current_logfile_name).strip()).to eq(event.to_json)
     end
 
     it 'should match the configured pattern' do
       current_config['message_format'] = '%{message} came %{source}.'
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register
+      subject.register()
       subject.receive(event)
-      subject.teardown
-      insist { client.read(current_logfile_name).strip } == 'Hello world! came out of the blue.'
+      subject.teardown()
+      expect(client.read(current_logfile_name).strip).to eq('Hello world! came out of the blue.')
     end
 
     # Hive does not like a leading "@", but we need @timestamp for path calculation.
@@ -84,42 +84,43 @@ describe 'outputs/webhdfs' do
       current_config['remove_at_timestamp'] = true
       current_config['message_format'] = '%{@timestamp} should be missing.'
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register
+      subject.register()
       subject.receive(event)
-      subject.teardown
-      insist { client.read(current_logfile_name).strip } == '%{@timestamp} should be missing.'
+      subject.teardown()
+      expect(client.read(current_logfile_name).strip).to eq('%{@timestamp} should be missing.')
     end
 
     it 'should flush after configured idle time' do
       current_config['idle_flush_time'] = 2
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register
+      subject.register()
       subject.receive(event)
       expect { client.read(current_logfile_name) }.to raise_error(error=WebHDFS::FileNotFoundError)
       sleep 3
-      insist { client.read(current_logfile_name).strip } == event.to_json
+      expect { client.read(current_logfile_name) }.to_not raise_error
+      expect(client.read(current_logfile_name).strip()).to eq(event.to_json)
     end
 
     it 'should write some messages uncompressed' do
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register
+      subject.register()
       for _ in 0..499
         subject.receive(event)
       end
-      subject.teardown
-      insist { client.read(current_logfile_name).lines.count } == 500
+      subject.teardown()
+      expect(client.read(current_logfile_name).lines.count).to eq(500)
     end
 
     it 'should write some messages gzip compressed' do
       current_logfile_name = current_logfile_name + ".gz"
       current_config['compression'] = 'gzip'
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register
+      subject.register()
       for _ in 0..499
         subject.receive(event)
       end
-      subject.teardown
-      insist { Zlib::Inflate.new(window_bits=47).inflate(client.read(current_logfile_name)).lines.count } == 500
+      subject.teardown()
+      expect(Zlib::Inflate.new(window_bits=47).inflate(client.read(current_logfile_name)).lines.count ).to eq(500)
     end
 
     after :each do
