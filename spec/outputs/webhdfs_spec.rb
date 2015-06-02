@@ -9,8 +9,8 @@ describe 'outputs/webhdfs' do
   webhdfs_host = '172.16.1.225' #'localhost'
   webhdfs_port = 50070
   webhdfs_user = 'hadoop'
-  path_to_testlog = '/user/hadoop/test.log'
-  current_logfile_name = '/user/hadoop/test.log'
+  path_to_testlog = "/user/#{webhdfs_user}/test.log"
+  current_logfile_name = "/user/#{webhdfs_user}/test.log"
   current_config = ""
 
       event = LogStash::Event.new(
@@ -62,6 +62,16 @@ describe 'outputs/webhdfs' do
       current_config = default_config.clone
     end
 
+    it 'should use the correct filename pattern' do
+      current_config['path'] = "/user/#{webhdfs_user}/%{host}_test.log"
+      current_logfile_name = "/user/#{webhdfs_user}/localhost_test.log"
+      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
+      subject.register()
+      subject.receive(event)
+      subject.teardown()
+      expect { client.read(current_logfile_name) }.to_not raise_error
+    end
+
     it 'should match the event data' do
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
       subject.register()
@@ -70,7 +80,7 @@ describe 'outputs/webhdfs' do
       expect(client.read(current_logfile_name).strip()).to eq(event.to_json)
     end
 
-    it 'should match the configured pattern' do
+    it 'content should match the configured pattern' do
       current_config['message_format'] = '%{message} came %{source}.'
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
       subject.register()
