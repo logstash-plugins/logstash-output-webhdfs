@@ -112,29 +112,22 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # Remove @timestamp field. Hive does not like a leading "@", but we need @timestamp for path calculation.
   config :remove_at_timestamp, :validate => :boolean, :default => true
 
-  public
-
-  def register
+  def load_module(module_name)
     begin
-      require 'webhdfs'
+      require module_name
     rescue LoadError
-      @logger.error("Module webhdfs could not be loaded.")
+      @logger.error("Module #{module_name} could not be loaded.")
       raise
     end
+  end
+
+  public
+  def register
+    load_module('webhdfs')
     if @compression == "gzip"
-      begin
-        require "zlib"
-      rescue LoadError
-        @logger.error("Gzip compression selected but zlib module could not be loaded.")
-        raise
-      end
+      load_module('zlib')
     elsif @compression == "snappy"
-      begin
-        require "snappy"
-      rescue LoadError
-        @logger.error("Snappy compression selected but snappy module could not be loaded.")
-        raise
-      end
+      load_module('snappy')
     end
     @files = {}
     @client = prepare_client(@host, @port, @user)
@@ -225,7 +218,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     buffer = StringIO.new('','w')
     compressor = Zlib::GzipWriter.new(buffer)
     begin
-      compressor.write data
+      compressor.write(data)
     ensure
       compressor.close()
     end
@@ -236,7 +229,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     # Encode data to ASCII_8BIT (binary)
     data= data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
     buffer = StringIO.new('', 'w')
-    buffer.set_encoding Encoding::ASCII_8BIT
+    buffer.set_encoding(Encoding::ASCII_8BIT)
     compressed = Snappy.deflate(data)
     buffer << [compressed.size, compressed].pack("Na*")
     buffer.string
@@ -246,7 +239,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     # Encode data to ASCII_8BIT (binary)
     data= data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
     buffer = StringIO.new
-    buffer.set_encoding Encoding::ASCII_8BIT
+    buffer.set_encoding(Encoding::ASCII_8BIT)
     chunks = data.scan(/.{1,#{@snappy_bufsize}}/m)
     chunks.each do |chunk|
       compressed = Snappy.deflate(chunk)
