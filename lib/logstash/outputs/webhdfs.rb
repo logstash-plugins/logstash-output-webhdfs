@@ -164,8 +164,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
 
   def flush(events=nil, teardown=false)
     return if not events
-    # Avoid creating a new string for newline every time
-    newline = "\n".freeze
+    newline = "\n"
     output_files = Hash.new { |hash, key| hash[key] = "" }
     events.collect do |event|
       path = event.sprintf(@path)
@@ -249,6 +248,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       elsif
         @client.create(path, data)
       end
+    # Handle other write errors and retry to write max. @retry_times.
     rescue => e
       if write_tries < @retry_times
         @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce number of workers. Retrying...")
@@ -261,7 +261,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       end
     end
   end
-
 
   def teardown
     buffer_flush(:final => true)
