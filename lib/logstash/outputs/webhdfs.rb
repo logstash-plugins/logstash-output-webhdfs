@@ -192,25 +192,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
           output = compress_snappy_stream(output)
         end
       end
-      write_tries = 0
-      while write_tries < @retry_times do
-        begin
-          write_data(path, output)
-          break
-        rescue => e
-          write_tries += 1
-          # Retry max_retry times. This can solve problems like leases being hold by another process. Sadly this is no
-          # KNOWN_ERROR in rubys webhdfs client.
-          if write_tries < @retry_times
-            @logger.warn("Retrying webhdfs write for multiple times. Maybe you should increase retry_interval or reduce number of workers.")
-            sleep(@retry_interval * write_tries)
-            next
-          else
-            # Issue error after max retries.
-            @logger.error("Max write retries reached. Exception: #{e.message}")
-          end
-        end
-      end
+      write_data(path, output)
     end
   end
 
@@ -253,8 +235,13 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   end
 
   def write_data(path, data)
+    # Retry max_retry times. This can solve problems like leases being hold by another process. Sadly this is no
+    # KNOWN_ERROR in rubys webhdfs client.
+    write_tries = 0
     begin
+      # Try to append to already existing file, which will work most of the times.
       @client.append(path, data)
+    # File does not exist, so create it.
     rescue WebHDFS::FileNotFoundError
       # Add snappy header if format is "file".
       if @compression == "snappy" and @snappy_format == "file"
@@ -262,8 +249,19 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       elsif
         @client.create(path, data)
       end
+    rescue => e
+      if write_tries < @retry_times
+        @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce number of workers. Retrying...")
+        sleep(@retry_interval * write_tries)
+        write_tries += 1
+        retry
+      else
+        # Issue error after max retries.
+        @logger.error("Max write retries reached. Events will be discarded. Exception: #{e.message}")
+      end
     end
   end
+
 
   def teardown
     buffer_flush(:final => true)
