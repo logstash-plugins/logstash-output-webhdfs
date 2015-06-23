@@ -39,7 +39,6 @@ describe 'outputs/webhdfs' do
       expect(subject.retry_times).to eq(5)
       expect(subject.snappy_bufsize).to eq(32768)
       expect(subject.snappy_format).to eq('stream')
-      expect(subject.remove_at_timestamp).to eq(true)
     end
   end
 end

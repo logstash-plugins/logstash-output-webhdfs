@@ -63,17 +63,6 @@ describe LogStash::Outputs::WebHdfs, :integration => true do
       expect(client.read(current_logfile_name).strip).to eq('Hello world! came out of the blue.')
     end
 
-    # Hive does not like a leading "@", but we need @timestamp for path calculation.
-    it 'should remove the @timestamp field if configured' do
-      current_config['remove_at_timestamp'] = true
-      current_config['message_format'] = '%{@timestamp} should be missing.'
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register()
-      subject.receive(event)
-      subject.teardown()
-      expect(client.read(current_logfile_name).strip).to eq('%{@timestamp} should be missing.')
-    end
-
     it 'should flush after configured idle time' do
       current_config['idle_flush_time'] = 2
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
