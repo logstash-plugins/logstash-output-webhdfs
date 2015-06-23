@@ -109,9 +109,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # Set snappy format. One of "stream", "file". Set to stream to be hive compatible.
   config :snappy_format, :validate => ["stream", "file"], :default => "stream"
 
-  # Remove @timestamp field. Hive does not like a leading "@", but we need @timestamp for path calculation.
-  config :remove_at_timestamp, :validate => :boolean, :default => true
-
   def load_module(module_name)
     begin
       require module_name
@@ -168,9 +165,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     output_files = Hash.new { |hash, key| hash[key] = "" }
     events.collect do |event|
       path = event.sprintf(@path)
-      if @remove_at_timestamp
-        event.remove("@timestamp")
-      end
       if @message_format
         event_as_string = event.sprintf(@message_format)
       else
