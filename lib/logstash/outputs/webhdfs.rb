@@ -109,6 +109,10 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # Set snappy format. One of "stream", "file". Set to stream to be hive compatible.
   config :snappy_format, :validate => ["stream", "file"], :default => "stream"
 
+  ## Set codec.
+  #config :codec, :validate => ["line", "json"], :default => "line"
+  default :codec, 'line'
+
   def load_module(module_name)
     begin
       require module_name
@@ -136,10 +140,13 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       raise
     end
     buffer_initialize(
-      :max_items => @flush_size,
-      :max_interval => @idle_flush_time,
-      :logger => @logger
+        :max_items => @flush_size,
+        :max_interval => @idle_flush_time,
+        :logger => @logger
     )
+    @codec.on_event do |event, encoded_event|
+      encoded_event
+    end
   end # def register
 
   public
@@ -165,11 +172,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     output_files = Hash.new { |hash, key| hash[key] = "" }
     events.collect do |event|
       path = event.sprintf(@path)
-      if @message_format
-        event_as_string = event.sprintf(@message_format)
-      else
-        event_as_string = event.to_json
-      end
+      event_as_string = @codec.encode(event)
       event_as_string += newline unless event_as_string.end_with? newline
       output_files[path] << event_as_string
     end
@@ -234,15 +237,15 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     begin
       # Try to append to already existing file, which will work most of the times.
       @client.append(path, data)
-    # File does not exist, so create it.
+        # File does not exist, so create it.
     rescue WebHDFS::FileNotFoundError
       # Add snappy header if format is "file".
       if @compression == "snappy" and @snappy_format == "file"
         @client.create(path, get_snappy_header! + data)
       elsif
-        @client.create(path, data)
+      @client.create(path, data)
       end
-    # Handle other write errors and retry to write max. @retry_times.
+        # Handle other write errors and retry to write max. @retry_times.
     rescue => e
       if write_tries < @retry_times
         @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce number of workers. Retrying...")
