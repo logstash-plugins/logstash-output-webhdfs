@@ -46,21 +46,22 @@ describe LogStash::Outputs::WebHdfs, :integration => true do
       expect { client.read(current_logfile_name) }.to_not raise_error
     end
 
-    it 'should match the event data' do
+    it 'should match the event data with line codec' do
+      current_config['codec'] = "line"
+      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
+      subject.register()
+      subject.receive(event)
+      subject.teardown()
+      expect(client.read(current_logfile_name).strip()).to eq(event.to_s)
+    end
+
+    it 'should match the event data with json codec' do
+      current_config['codec'] = "json"
       subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
       subject.register()
       subject.receive(event)
       subject.teardown()
       expect(client.read(current_logfile_name).strip()).to eq(event.to_json)
-    end
-
-    it 'content should match the configured pattern' do
-      current_config['message_format'] = '%{message} came %{source}.'
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register()
-      subject.receive(event)
-      subject.teardown()
-      expect(client.read(current_logfile_name).strip).to eq('Hello world! came out of the blue.')
     end
 
     it 'should flush after configured idle time' do
@@ -71,7 +72,7 @@ describe LogStash::Outputs::WebHdfs, :integration => true do
       expect { client.read(current_logfile_name) }.to raise_error(error=WebHDFS::FileNotFoundError)
       sleep 3
       expect { client.read(current_logfile_name) }.to_not raise_error
-      expect(client.read(current_logfile_name).strip()).to eq(event.to_json)
+      expect(client.read(current_logfile_name).strip()).to eq(event.to_s)
     end
 
     it 'should write some messages uncompressed' do
