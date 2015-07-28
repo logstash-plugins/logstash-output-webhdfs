@@ -38,8 +38,6 @@ require "stud/buffer"
 #   }
 # }
 # ----------------------------------
-#
-# Author: Bjoern Puttmann <b.puttmann@dbap.de> - dbap GmbH, Münster, Germany.
 
 class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   include Stud::Buffer
