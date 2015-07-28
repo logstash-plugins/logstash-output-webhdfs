@@ -6,39 +6,66 @@ require 'json'
 
 describe 'outputs/webhdfs' do
 
-  webhdfs_host = 'localhost'
-  webhdfs_user = 'hadoop'
-  path_to_testlog = "/user/#{webhdfs_user}/test.log"
+  let(:host) { 'localhost' }
+  let(:user) { 'hadoop' }
+  let(:path) { '/test.log' }
 
-  default_config =  { 'host' => webhdfs_host,
-                      'user' => webhdfs_user,
-                      'path' => path_to_testlog,
-                      'compression' => 'none' }
+  let(:config) { { 'host' =>host, 'user' => user, 'path' => path, 'compression' => 'none' } }
 
-  context 'when initializing' do
+  subject(:plugin) { LogStash::Plugin.lookup("output", "webhdfs").new(config) }
+
+  describe '#initializing' do
 
     it 'should fail to register without required values' do
-      expect { LogStash::Plugin.lookup("output", "webhdfs").new() }.to raise_error(error=LogStash::ConfigurationError)
+      plugin = LogStash::Plugin.lookup("output", "webhdfs")
+      expect { plugin.new }.to raise_error(error=LogStash::ConfigurationError)
     end
 
-    it 'should register with default values' do
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(default_config)
-      expect { subject.register() }.to_not raise_error
-    end
+    context "default values" do
 
-    it 'should have default config values' do
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(default_config)
-      expect(subject.port).to eq(50070)
-      expect(subject.idle_flush_time).to eq(1)
-      expect(subject.flush_size).to eq(500)
-      expect(subject.open_timeout).to eq(30)
-      expect(subject.read_timeout).to eq(30)
-      expect(subject.use_httpfs).to eq(false)
-      expect(subject.retry_known_errors).to eq(true)
-      expect(subject.retry_interval).to eq(0.5)
-      expect(subject.retry_times).to eq(5)
-      expect(subject.snappy_bufsize).to eq(32768)
-      expect(subject.snappy_format).to eq('stream')
+      it 'should have default port' do
+        expect(subject.port).to eq(50070)
+      end
+
+      it 'should have default idle_flush_time' do
+        expect(subject.idle_flush_time).to eq(1)
+      end
+      it 'should have default flush_size' do
+        expect(subject.flush_size).to eq(500)
+      end
+
+      it 'should have default open_timeout' do
+        expect(subject.open_timeout).to eq(30)
+      end
+
+      it 'should have default read_timeout' do
+        expect(subject.read_timeout).to eq(30)
+      end
+
+      it 'should have default use_httpfs' do
+        expect(subject.use_httpfs).to eq(false)
+      end
+
+      it 'should have default retry_known_errors' do
+        expect(subject.retry_known_errors).to eq(true)
+      end
+
+      it 'should have default retry_interval' do
+        expect(subject.retry_interval).to eq(0.5)
+      end
+
+      it 'should have default retry_times' do
+        expect(subject.retry_times).to eq(5)
+      end
+
+      it 'should have default snappy_bufsize' do
+        expect(subject.snappy_bufsize).to eq(32768)
+      end
+
+      it 'should have default snappy_format' do
+        expect(subject.snappy_format).to eq('stream')
+      end
+
     end
   end
 end
