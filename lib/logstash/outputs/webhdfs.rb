@@ -60,12 +60,12 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # The path to the file to write to. Event fields can be used here,
   # as well as date fields in the joda time format, e.g.:
   # ....
-  #     "/user/logstash/dt=%{+YYYY-MM-dd}/%{@source_host}-%{+HH}.log"
+  #     `/user/logstash/dt=%{+YYYY-MM-dd}/%{@source_host}-%{+HH}.log`
   # ....
   config :path, :validate => :string, :required => true
 
   # The format to use when writing events to the file. This value
-  # supports any string and can include %{name} and other dynamic
+  # supports any string and can include `%{name}` and other dynamic
   # strings.
   #
   # If this setting is omitted, the full json representation of the
@@ -107,7 +107,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   config :snappy_format, :validate => ["stream", "file"], :default => "stream"
 
   ## Set codec.
-  #config :codec, :validate => ["line", "json"], :default => "line"
   default :codec, 'line'
 
   def load_module(module_name)
