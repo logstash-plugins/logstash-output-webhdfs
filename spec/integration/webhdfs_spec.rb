@@ -5,96 +5,127 @@ require 'webhdfs'
 require 'json'
 
 describe LogStash::Outputs::WebHdfs, :integration => true do
-  webhdfs_host = 'localhost'
-  webhdfs_port = 50070
-  webhdfs_user = 'hadoop'
-  path_to_testlog = "/user/#{webhdfs_user}/test.log"
-  current_logfile_name = "/user/#{webhdfs_user}/test.log"
-  current_config = ""
 
-  event = LogStash::Event.new('message' => 'Hello world!',
-                              'source' => 'out of the blue',
-                              'type' => 'generator',
-                              'host' => 'localhost',
-                              '@timestamp' => LogStash::Timestamp.now)
+  let(:host) { 'localhost' }
+  let(:port) { 50070 }
+  let(:user) { 'vagrant' }
 
-  default_config =  { 'host' => webhdfs_host,
-                      'user' => webhdfs_user,
-                      'path' => path_to_testlog,
-                      'compression' => 'none' }
+  let(:test_file) { "/test.file" }
 
-  client = WebHDFS::Client.new(webhdfs_host, webhdfs_port, webhdfs_user)
+  let(:event) { LogStash::Event.new('message' => 'Hello world!', 'source' => 'out of the blue',
+                                    'type' => 'generator', 'host' => 'localhost' ) }
 
-  context 'when writing messages' do
+  let(:config) { { 'host' => host, 'user' => user,
+                   'path' => test_file, 'compression' => 'none' } }
 
-    before :each do
-      current_logfile_name = path_to_testlog
-      current_config = default_config.clone
+  subject { LogStash::Plugin.lookup("output", "webhdfs").new(config) }
+
+  let(:client) { WebHDFS::Client.new(host, port, user) }
+
+  describe "register and teardown" do
+
+    it 'should register with default values' do
+      expect { subject.register }.to_not raise_error
     end
 
-    after :each do
-      client.delete(current_logfile_name)
+  end
+
+  describe '#write' do
+
+    let(:config) { { 'host' => host, 'user' => user, 'flush_size' => 10,
+                     'path' => "/%{host}_test.log", 'compression' => 'none' } }
+
+    after(:each) do
+      client.delete(test_file)
     end
 
-    it 'should use the correct filename pattern' do
-      current_config['path'] = "/user/#{webhdfs_user}/%{host}_test.log"
-      current_logfile_name = "/user/#{webhdfs_user}/localhost_test.log"
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register()
-      subject.receive(event)
-      subject.teardown()
-      expect { client.read(current_logfile_name) }.to_not raise_error
-    end
+    describe "writing plain files" do
 
-    it 'should match the event data with line codec' do
-      current_config['codec'] = "line"
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register()
-      subject.receive(event)
-      subject.teardown()
-      expect(client.read(current_logfile_name).strip()).to eq(event.to_s)
-    end
-
-    it 'should match the event data with json codec' do
-      current_config['codec'] = "json"
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register()
-      subject.receive(event)
-      subject.teardown()
-      expect(client.read(current_logfile_name).strip()).to eq(event.to_json)
-    end
-
-    it 'should flush after configured idle time' do
-      current_config['idle_flush_time'] = 2
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register()
-      subject.receive(event)
-      expect { client.read(current_logfile_name) }.to raise_error(error=WebHDFS::FileNotFoundError)
-      sleep 3
-      expect { client.read(current_logfile_name) }.to_not raise_error
-      expect(client.read(current_logfile_name).strip()).to eq(event.to_s)
-    end
-
-    it 'should write some messages uncompressed' do
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register()
-      for _ in 0..499
+      before(:each) do
+        subject.register
         subject.receive(event)
+        subject.teardown
       end
-      subject.teardown()
-      expect(client.read(current_logfile_name).lines.count).to eq(500)
+
+      it 'should use the correct filename pattern' do
+        expect { client.read('localhost_test.log') }.to_not raise_error
+      end
+
+      context "using the line codec" do
+
+        let(:config) { { 'host' => host, 'user' => user, 'flush_size' => 10,
+                         'path' => test_file, 'compression' => 'none', 'codec' => 'line' } }
+
+        it 'should match the event data' do
+          expect(client.read(test_file).strip()).to eq(event.to_s)
+        end
+      end
+
+      context "using the json codec" do
+
+        let(:config) { { 'host' => host, 'user' => user, 'flush_size' => 10,
+                         'path' => test_file, 'compression' => 'none', 'codec' => 'json' } }
+
+
+        it 'should match the event data' do
+          expect(client.read(test_file).strip()).to eq(event.to_json)
+        end
+
+      end
+
+      context "when flushing events" do
+
+        let(:config) { { 'host' => host, 'user' => user, 'flush_size' => 10, 'idle_flush_time' => 2,
+                         'path' => test_file, 'compression' => 'none', 'codec' => 'json' } }
+
+        before(:each) do
+          client.delete(test_file)
+        end
+
+        it 'should flush after configured idle time' do
+          subject.register
+          subject.receive(event)
+          expect { client.read(test_file) }.to raise_error(error=WebHDFS::FileNotFoundError)
+          sleep 3
+          expect { client.read(test_file) }.to_not raise_error
+          expect(client.read(test_file).strip()).to eq(event.to_json)
+        end
+      end
+
     end
 
-    it 'should write some messages gzip compressed' do
-      current_logfile_name = current_logfile_name + ".gz"
-      current_config['compression'] = 'gzip'
-      subject = LogStash::Plugin.lookup("output", "webhdfs").new(current_config)
-      subject.register()
-      for _ in 0..499
-        subject.receive(event)
+    describe "#compression" do
+
+      before(:each) do
+        subject.register
+        for _ in 0...500
+          subject.receive(event)
+        end
+        subject.teardown
       end
-      subject.teardown()
-      expect(Zlib::Inflate.new(window_bits=47).inflate(client.read(current_logfile_name)).lines.count ).to eq(500)
+
+      context "when using no compression" do
+
+        let(:config) { { 'host' => host, 'user' => user, 'flush_size' => 10,
+                         'path' => test_file, 'compression' => 'none', 'codec' => 'line' } }
+
+        it 'should write some messages uncompressed' do
+          expect(client.read(test_file).lines.count).to eq(500)
+        end
+
+      end
+
+      context "when using gzip compression" do
+
+        let(:config) { { 'host' => host, 'user' => user,
+                         'path' => test_file, 'compression' => 'gzip', 'codec' => 'line' } }
+
+        it 'should write some messages gzip compressed' do
+          expect(Zlib::Inflate.new(window_bits=47).inflate(client.read("#{test_file}.gz")).lines.count ).to eq(500)
+        end
+      end
+
     end
+
   end
 end
