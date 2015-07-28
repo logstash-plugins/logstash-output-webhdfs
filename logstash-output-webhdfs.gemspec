@@ -23,6 +23,10 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'logstash-core', '>= 1.4.0', '< 2.0.0'
   s.add_runtime_dependency 'webhdfs'
   s.add_runtime_dependency 'snappy'
-  s.add_runtime_dependency 'logstash-codec-line'
   s.add_development_dependency 'logstash-devutils'
+
+  s.add_development_dependency 'logstash-codec-line'
+  s.add_development_dependency 'logstash-codec-json'
+
+
 end
