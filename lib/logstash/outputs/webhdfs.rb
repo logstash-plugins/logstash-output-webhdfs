@@ -3,7 +3,7 @@ require "logstash/namespace"
 require "logstash/outputs/base"
 require "stud/buffer"
 
-# Summary: Plugin to send logstash events to to files in HDFS via webhdfs 
+# Summary: Plugin to send logstash events to files in HDFS via webhdfs
 # restapi.  
 #
 # This plugin only has a mandatory dependency on the webhdfs gem from 
