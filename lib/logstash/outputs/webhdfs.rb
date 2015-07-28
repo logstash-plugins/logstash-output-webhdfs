@@ -2,6 +2,7 @@
 require "logstash/namespace"
 require "logstash/outputs/base"
 require "stud/buffer"
+require "logstash/outputs/webhdfs_helper"
 
 # Summary: Plugin to send logstash events to files in HDFS via webhdfs
 # REST API.
@@ -40,7 +41,9 @@ require "stud/buffer"
 # ----------------------------------
 
 class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
+
   include Stud::Buffer
+  include LogStash::Outputs::WebHdfsHelper
 
   config_name "webhdfs"
 
@@ -109,16 +112,8 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   ## Set codec.
   default :codec, 'line'
 
-  def load_module(module_name)
-    begin
-      require module_name
-    rescue LoadError
-      @logger.error("Module #{module_name} could not be loaded.")
-      raise
-    end
-  end
-
   public
+
   def register
     load_module('webhdfs')
     if @compression == "gzip"
@@ -136,31 +131,19 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       raise
     end
     buffer_initialize(
-        :max_items => @flush_size,
-        :max_interval => @idle_flush_time,
-        :logger => @logger
+      :max_items => @flush_size,
+      :max_interval => @idle_flush_time,
+      :logger => @logger
     )
     @codec.on_event do |event, encoded_event|
       encoded_event
     end
   end # def register
 
-  public
   def receive(event)
     return unless output?(event)
     buffer_receive(event)
   end # def receive
-
-  def prepare_client(host, port, username)
-    client = WebHDFS::Client.new(host, port, username)
-    client.httpfs_mode = @use_httpfs
-    client.open_timeout = @open_timeout
-    client.read_timeout = @read_timeout
-    client.retry_known_errors = @retry_known_errors
-    client.retry_interval = @retry_interval if @retry_interval
-    client.retry_times = @retry_times if @retry_times
-    client
-  end
 
   def flush(events=nil, teardown=false)
     return if not events
@@ -188,44 +171,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     end
   end
 
-  def compress_gzip(data)
-    buffer = StringIO.new('','w')
-    compressor = Zlib::GzipWriter.new(buffer)
-    begin
-      compressor.write(data)
-    ensure
-      compressor.close()
-    end
-    buffer.string
-  end
-
-  def compress_snappy_file(data)
-    # Encode data to ASCII_8BIT (binary)
-    data= data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
-    buffer = StringIO.new('', 'w')
-    buffer.set_encoding(Encoding::ASCII_8BIT)
-    compressed = Snappy.deflate(data)
-    buffer << [compressed.size, compressed].pack("Na*")
-    buffer.string
-  end
-
-  def compress_snappy_stream(data)
-    # Encode data to ASCII_8BIT (binary)
-    data= data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
-    buffer = StringIO.new
-    buffer.set_encoding(Encoding::ASCII_8BIT)
-    chunks = data.scan(/.{1,#{@snappy_bufsize}}/m)
-    chunks.each do |chunk|
-      compressed = Snappy.deflate(chunk)
-      buffer << [chunk.size, compressed.size, compressed].pack("NNa*")
-    end
-    return buffer.string
-  end
-
-  def get_snappy_header!
-    [MAGIC, DEFAULT_VERSION, MINIMUM_COMPATIBLE_VERSION].pack("a8NN")
-  end
-
   def write_data(path, data)
     # Retry max_retry times. This can solve problems like leases being hold by another process. Sadly this is no
     # KNOWN_ERROR in rubys webhdfs client.
@@ -233,15 +178,15 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     begin
       # Try to append to already existing file, which will work most of the times.
       @client.append(path, data)
-        # File does not exist, so create it.
+      # File does not exist, so create it.
     rescue WebHDFS::FileNotFoundError
       # Add snappy header if format is "file".
       if @compression == "snappy" and @snappy_format == "file"
         @client.create(path, get_snappy_header! + data)
       elsif
-      @client.create(path, data)
+        @client.create(path, data)
       end
-        # Handle other write errors and retry to write max. @retry_times.
+      # Handle other write errors and retry to write max. @retry_times.
     rescue => e
       if write_tries < @retry_times
         @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce number of workers. Retrying...")
