@@ -43,7 +43,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   include Stud::Buffer
 
   config_name "webhdfs"
-  milestone 1
 
   MAGIC = "\x82SNAPPY\x0".force_encoding Encoding::ASCII_8BIT
   DEFAULT_VERSION = 1
