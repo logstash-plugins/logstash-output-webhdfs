@@ -19,7 +19,7 @@ require "stud/buffer"
 # make sure, that the hostname of your namenode is resolvable on the host running logstash. When creating/appending
 # to a file, webhdfs somtime sends a 307 TEMPORARY_REDIRECT with the HOSTNAME of the machine its running on.
 #
-# USAGE:
+# ==== Usage
 # This is an example of logstash config:
 #
 # [source,ruby]
