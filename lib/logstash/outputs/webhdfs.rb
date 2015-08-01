@@ -4,24 +4,24 @@ require "logstash/outputs/base"
 require "stud/buffer"
 require "logstash/outputs/webhdfs_helper"
 
-# Summary: Plugin to send logstash events to files in HDFS via webhdfs
-# REST API.
+# This plugin sends Logstash events into files in HDFS via 
+# the https://hadoop.apache.org/docs/r1.0.4/webhdfs.html[webhdfs] REST API.
 #
-# This plugin only has a mandatory dependency on the webhdfs gem from 
-# Kazuki Ohta and TAGOMORI Satoshi (@see: https://github.com/kzk/webhdfs).
-# Optional dependencies are zlib and snappy gem. 
-# No jars from hadoop are needed, thus reducing configuration and compatibility
-# problems.
+# ==== Dependencies
+# This plugin has no dependency on jars from hadoop, thus reducing configuration and compatibility
+# problems. It uses the webhdfs gem from Kazuki Ohta and TAGOMORI Satoshi (@see: https://github.com/kzk/webhdfs).
+# Optional dependencies are zlib and snappy gem if you use the compression functionality. 
 #
+# ==== Operational Notes
 # If you get an error like:
 #
 #     Max write retries reached. Exception: initialize: name or service not known {:level=>:error}
 #
-# make sure, that the hostname of your namenode is resolvable on the host running logstash. When creating/appending
-# to a file, webhdfs somtime sends a 307 TEMPORARY_REDIRECT with the HOSTNAME of the machine its running on.
+# make sure that the hostname of your namenode is resolvable on the host running Logstash. When creating/appending
+# to a file, webhdfs somtime sends a `307 TEMPORARY_REDIRECT` with the `HOSTNAME` of the machine its running on.
 #
 # ==== Usage
-# This is an example of logstash config:
+# This is an example of Logstash config:
 #
 # [source,ruby]
 # ----------------------------------
@@ -62,9 +62,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
 
   # The path to the file to write to. Event fields can be used here,
   # as well as date fields in the joda time format, e.g.:
-  # ....
-  #     `/user/logstash/dt=%{+YYYY-MM-dd}/%{@source_host}-%{+HH}.log`
-  # ....
+  # `/user/logstash/dt=%{+YYYY-MM-dd}/%{@source_host}-%{+HH}.log`
   config :path, :validate => :string, :required => true
 
   # The format to use when writing events to the file. This value
@@ -78,7 +76,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # Sending data to webhdfs in x seconds intervals.
   config :idle_flush_time, :validate => :number, :default => 1
 
-  # Sending data to webhdfs if event count is above, even if store_interval_in_secs is not reached.
+  # Sending data to webhdfs if event count is above, even if `store_interval_in_secs` is not reached.
   config :flush_size, :validate => :number, :default => 500
 
   # WebHdfs open timeout, default 30s.
