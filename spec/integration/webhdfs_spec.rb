@@ -22,7 +22,7 @@ describe LogStash::Outputs::WebHdfs, :integration => true do
 
   let(:client) { WebHDFS::Client.new(host, port, user) }
 
-  describe "register and teardown" do
+  describe "register and close" do
 
     it 'should register with default values' do
       expect { subject.register }.to_not raise_error
@@ -44,7 +44,7 @@ describe LogStash::Outputs::WebHdfs, :integration => true do
       before(:each) do
         subject.register
         subject.receive(event)
-        subject.teardown
+        subject.close
       end
 
       it 'should use the correct filename pattern' do
@@ -101,7 +101,7 @@ describe LogStash::Outputs::WebHdfs, :integration => true do
         for _ in 0...500
           subject.receive(event)
         end
-        subject.teardown
+        subject.close
       end
 
       context "when using no compression" do

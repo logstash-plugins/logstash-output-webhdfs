@@ -143,7 +143,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     buffer_receive(event)
   end # def receive
 
-  def flush(events=nil, teardown=false)
+  def flush(events=nil, close=false)
     return if not events
     newline = "\n"
     output_files = Hash.new { |hash, key| hash[key] = "" }
@@ -198,7 +198,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     end
   end
 
-  def teardown
+  def close
     buffer_flush(:final => true)
-  end # def teardown
+  end # def close
 end # class LogStash::Outputs::WebHdfs
