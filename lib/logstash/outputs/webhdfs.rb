@@ -139,7 +139,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   end # def register
 
   def receive(event)
-    return unless output?(event)
+    
     buffer_receive(event)
   end # def receive
 
