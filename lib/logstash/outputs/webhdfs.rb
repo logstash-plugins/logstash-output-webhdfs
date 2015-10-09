@@ -34,7 +34,7 @@ require "logstash/outputs/webhdfs_helper"
 # output {
 #   webhdfs {
 #     host => "127.0.0.1"                 # (required)
-#     port => 50070			  # (optional, default: 50070)
+#     port => 50070                       # (optional, default: 50070)
 #     path => "/user/logstash/dt=%{+YYYY-MM-dd}/logstash-%{+HH}.log"  # (required)
 #     user => "hue"                       # (required)
 #   }
