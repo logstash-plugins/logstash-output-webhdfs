@@ -32,7 +32,7 @@ require "stud/buffer"
 # }
 # output {
 #   webhdfs {
-#     server => "127.0.0.1:50070"         # (required)
+#     host => "127.0.0.1"                 # (required)
 #     path => "/user/logstash/dt=%{+YYYY-MM-dd}/logstash-%{+HH}.log"  # (required)
 #     user => "hue"                       # (required)
 #   }
