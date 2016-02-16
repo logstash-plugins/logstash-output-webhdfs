@@ -4,13 +4,13 @@ require "logstash/outputs/base"
 require "stud/buffer"
 require "logstash/outputs/webhdfs_helper"
 
-# This plugin sends Logstash events into files in HDFS via 
+# This plugin sends Logstash events into files in HDFS via
 # the https://hadoop.apache.org/docs/r1.0.4/webhdfs.html[webhdfs] REST API.
 #
 # ==== Dependencies
 # This plugin has no dependency on jars from hadoop, thus reducing configuration and compatibility
 # problems. It uses the webhdfs gem from Kazuki Ohta and TAGOMORI Satoshi (@see: https://github.com/kzk/webhdfs).
-# Optional dependencies are zlib and snappy gem if you use the compression functionality. 
+# Optional dependencies are zlib and snappy gem if you use the compression functionality.
 #
 # ==== Operational Notes
 # If you get an error like:
@@ -66,14 +66,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # `/user/logstash/dt=%{+YYYY-MM-dd}/%{@source_host}-%{+HH}.log`
   config :path, :validate => :string, :required => true
 
-  # The format to use when writing events to the file. This value
-  # supports any string and can include `%{name}` and other dynamic
-  # strings.
-  #
-  # If this setting is omitted, the full json representation of the
-  # event will be written as a single line.
-  config :message_format, :validate => :string
-
   # Sending data to webhdfs in x seconds intervals.
   config :idle_flush_time, :validate => :number, :default => 1
 
@@ -91,6 +83,11 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
 
   # Retry some known webhdfs errors. These may be caused by race conditions when appending to same file, etc.
   config :retry_known_errors, :validate => :boolean, :default => true
+
+  # Avoid appending to same file in multiple threads.
+  # This solves some problems with multiple logstash output threads and locked file leases in webhdfs.
+  # If this option is set to true, %{thread_id} needs to be used in path config settting.
+  config :single_file_per_thread, :validate => :boolean, :default => false
 
   # How long should we wait between retries.
   config :retry_interval, :validate => :number, :default => 0.5
@@ -129,10 +126,15 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       @logger.error("Webhdfs check request failed. (namenode: #{@client.host}:#{@client.port}, Exception: #{e.message})")
       raise
     end
+    # Make sure @path contains %{thread_id} format value if @single_file_per_thread is set to true.
+    if @single_file_per_thread and !@path.include? "%{thread_id}"
+      @logger.error("Please set %{thread_id} format value in @path if @single_file_per_thread is active.")
+      raise LogStash::ConfigurationError
+    end
     buffer_initialize(
-      :max_items => @flush_size,
-      :max_interval => @idle_flush_time,
-      :logger => @logger
+        :max_items => @flush_size,
+        :max_interval => @idle_flush_time,
+        :logger => @logger
     )
     @codec.on_event do |event, encoded_event|
       encoded_event
@@ -140,7 +142,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   end # def register
 
   def receive(event)
-    
     buffer_receive(event)
   end # def receive
 
@@ -149,6 +150,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     newline = "\n"
     output_files = Hash.new { |hash, key| hash[key] = "" }
     events.collect do |event|
+      event['thread_id'] = Thread.current.object_id.to_s
       path = event.sprintf(@path)
       event_as_string = @codec.encode(event)
       event_as_string += newline unless event_as_string.end_with? newline
@@ -163,7 +165,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
         if @snappy_format == "file"
           output = compress_snappy_file(output)
         elsif
-          output = compress_snappy_stream(output)
+        output = compress_snappy_stream(output)
         end
       end
       write_data(path, output)
@@ -177,15 +179,19 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     begin
       # Try to append to already existing file, which will work most of the times.
       @client.append(path, data)
-      # File does not exist, so create it.
+        # File does not exist, so create it.
     rescue WebHDFS::FileNotFoundError
-      # Add snappy header if format is "file".
-      if @compression == "snappy" and @snappy_format == "file"
-        @client.create(path, get_snappy_header! + data)
-      elsif
+      begin
+        # Add snappy header if format is "file".
+        if @compression == "snappy" and @snappy_format == "file"
+          data = get_snappy_header! + data
+        end
         @client.create(path, data)
+          # Create failed with an error. This should be fatal.
+      rescue => e
+        @logger.warn("webhdfs write caused an exception: #{e.message}.")
       end
-      # Handle other write errors and retry to write max. @retry_times.
+        # Handle other write errors and retry to write max. @retry_times.
     rescue => e
       if write_tries < @retry_times
         @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce number of workers. Retrying...")
