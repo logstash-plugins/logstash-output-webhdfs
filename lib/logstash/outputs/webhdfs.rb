@@ -83,7 +83,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
 
   # Avoid appending to same file in multiple threads.
   # This solves some problems with multiple logstash output threads and locked file leases in webhdfs.
-  # If this option is set to true, %{thread_id} needs to be used in path config settting.
+  # If this option is set to true, %{[@metadata][thread_id]} needs to be used in path config settting.
   config :single_file_per_thread, :validate => :boolean, :default => false
 
   # Retry some known webhdfs errors. These may be caused by race conditions when appending to same file, etc.
@@ -126,9 +126,9 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       @logger.error("Webhdfs check request failed. (namenode: #{@client.host}:#{@client.port}, Exception: #{e.message})")
       raise
     end
-    # Make sure @path contains %{thread_id} format value if @single_file_per_thread is set to true.
-    if @single_file_per_thread and !@path.include? "%{thread_id}"
-      @logger.error("Please set %{thread_id} format value in @path if @single_file_per_thread is active.")
+    # Make sure @path contains %{[@metadata][thread_id]} format value if @single_file_per_thread is set to true.
+    if @single_file_per_thread and !@path.include? "%{[@metadata][thread_id]}"
+      @logger.error("Please set %{[@metadata][thread_id]} format value in @path if @single_file_per_thread is active.")
       raise LogStash::ConfigurationError
     end
     buffer_initialize(
@@ -151,9 +151,9 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     newline = "\n"
     output_files = Hash.new { |hash, key| hash[key] = "" }
     events.collect do |event|
-      # Add thread_id to event to be used as format value in path configuration.
+      # Add thread_id to event metadata to be used as format value in path configuration.
       if @single_file_per_thread
-        event['thread_id'] = Thread.current.object_id.to_s
+        event['@metadata']['thread_id'] = Thread.current.object_id.to_s
       end
       path = event.sprintf(@path)
       event_as_string = @codec.encode(event)
