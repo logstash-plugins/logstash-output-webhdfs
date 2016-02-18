@@ -4,13 +4,13 @@ require "logstash/outputs/base"
 require "stud/buffer"
 require "logstash/outputs/webhdfs_helper"
 
-# This plugin sends Logstash events into files in HDFS via 
+# This plugin sends Logstash events into files in HDFS via
 # the https://hadoop.apache.org/docs/r1.0.4/webhdfs.html[webhdfs] REST API.
 #
 # ==== Dependencies
 # This plugin has no dependency on jars from hadoop, thus reducing configuration and compatibility
 # problems. It uses the webhdfs gem from Kazuki Ohta and TAGOMORI Satoshi (@see: https://github.com/kzk/webhdfs).
-# Optional dependencies are zlib and snappy gem if you use the compression functionality. 
+# Optional dependencies are zlib and snappy gem if you use the compression functionality.
 #
 # ==== Operational Notes
 # If you get an error like:
@@ -66,14 +66,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # `/user/logstash/dt=%{+YYYY-MM-dd}/%{@source_host}-%{+HH}.log`
   config :path, :validate => :string, :required => true
 
-  # The format to use when writing events to the file. This value
-  # supports any string and can include `%{name}` and other dynamic
-  # strings.
-  #
-  # If this setting is omitted, the full json representation of the
-  # event will be written as a single line.
-  config :message_format, :validate => :string
-
   # Sending data to webhdfs in x seconds intervals.
   config :idle_flush_time, :validate => :number, :default => 1
 
@@ -88,6 +80,11 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
 
   # Use httpfs mode if set to true, else webhdfs.
   config :use_httpfs, :validate => :boolean, :default => false
+
+  # Avoid appending to same file in multiple threads.
+  # This solves some problems with multiple logstash output threads and locked file leases in webhdfs.
+  # If this option is set to true, %{[@metadata][thread_id]} needs to be used in path config settting.
+  config :single_file_per_thread, :validate => :boolean, :default => false
 
   # Retry some known webhdfs errors. These may be caused by race conditions when appending to same file, etc.
   config :retry_known_errors, :validate => :boolean, :default => true
@@ -129,6 +126,11 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       @logger.error("Webhdfs check request failed. (namenode: #{@client.host}:#{@client.port}, Exception: #{e.message})")
       raise
     end
+    # Make sure @path contains %{[@metadata][thread_id]} format value if @single_file_per_thread is set to true.
+    if @single_file_per_thread and !@path.include? "%{[@metadata][thread_id]}"
+      @logger.error("Please set %{[@metadata][thread_id]} format value in @path if @single_file_per_thread is active.")
+      raise LogStash::ConfigurationError
+    end
     buffer_initialize(
       :max_items => @flush_size,
       :max_interval => @idle_flush_time,
@@ -149,6 +151,10 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     newline = "\n"
     output_files = Hash.new { |hash, key| hash[key] = "" }
     events.collect do |event|
+      # Add thread_id to event metadata to be used as format value in path configuration.
+      if @single_file_per_thread
+        event['@metadata']['thread_id'] = Thread.current.object_id.to_s
+      end
       path = event.sprintf(@path)
       event_as_string = @codec.encode(event)
       event_as_string += newline unless event_as_string.end_with? newline
