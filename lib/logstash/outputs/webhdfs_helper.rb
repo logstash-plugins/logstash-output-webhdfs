@@ -31,7 +31,16 @@ module LogStash
         client.retry_times = @retry_times if @retry_times
         client
       end
-
+      # Test client connection.
+      #@param client [WebHDFS] webhdfs client object.
+      def test_client(client)
+        begin
+          client.list('/')
+        rescue => e
+          @logger.error("Webhdfs check request failed. (namenode: #{client.host}:#{client.port}, Exception: #{e.message})")
+          raise
+        end
+      end
 
       # Compress data using the gzip methods.
       # @param data [String] stream of data to be compressed
