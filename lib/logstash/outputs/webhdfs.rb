@@ -58,6 +58,12 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # The server port for webhdfs/httpfs connections.
   config :port, :validate => :number, :default => 50070
 
+  # Standby namenode for ha hdfs.
+  config :standby_host, :validate => :string, :default => false
+
+  # Standby namenode port for ha hdfs.
+  config :standby_port, :validate => :number, :default => 50070
+
   # The Username for webhdfs.
   config :user, :validate => :string, :required => true
 
@@ -117,14 +123,29 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     elsif @compression == "snappy"
       load_module('snappy')
     end
+    @main_namenode_failed = false
+    @standby_client = false
     @files = {}
+    # Create and test standby client if configured.
+    if @standby_host
+      @standby_client = prepare_client(@standby_host, @standby_port, @user)
+      begin
+        test_client(@standby_client)
+      rescue => e
+        logger.warn("Could not connect to standby namenode #{@standby_host}. Error: #{e.message}. Trying main webhdfs namenode.")
+      end
+    end
     @client = prepare_client(@host, @port, @user)
-    # Test client connection.
     begin
-      @client.list('/')
+      test_client(@client)
     rescue => e
-      @logger.error("Webhdfs check request failed. (namenode: #{@client.host}:#{@client.port}, Exception: #{e.message})")
-      raise
+      # If no standy host is configured, we need to exit here.
+      if not @standby_host
+        raise
+      else
+        # If a standby host is configured, try this before giving up.
+        do_failover
+      end
     end
     # Make sure @path contains %{[@metadata][thread_id]} format value if @single_file_per_thread is set to true.
     if @single_file_per_thread and !@path.include? "%{[@metadata][thread_id]}"
@@ -142,7 +163,6 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   end # def register
 
   def receive(event)
-    
     buffer_receive(event)
   end # def receive
 
@@ -191,8 +211,14 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       elsif
         @client.create(path, data)
       end
-      # Handle other write errors and retry to write max. @retry_times.
+    # Handle other write errors and retry to write max. @retry_times.
     rescue => e
+      # Handle StandbyException and do failover. Still we want to exit if write_tries >= @retry_times.
+      if @standby_client && (e.message.match(/Failed to connect to host/) || e.message.match(/StandbyException/))
+        do_failover
+        write_tries += 1
+        retry
+      end
       if write_tries < @retry_times
         @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce number of workers. Retrying...")
         sleep(@retry_interval * write_tries)
@@ -203,6 +229,14 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
         @logger.error("Max write retries reached. Events will be discarded. Exception: #{e.message}")
       end
     end
+  end
+
+  def do_failover
+    if not @standby_client
+      return
+    end
+    @logger.warn("Got exception from #{@host}. Switching to #{@standby_host}")
+    @client, @standby_client = @standby_client, @client
   end
 
   def close
