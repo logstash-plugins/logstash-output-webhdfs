@@ -173,7 +173,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     events.collect do |event|
       # Add thread_id to event metadata to be used as format value in path configuration.
       if @single_file_per_thread
-        event['@metadata']['thread_id'] = Thread.current.object_id.to_s
+        event.set("[@metadata][thread_id]", Thread.current.object_id.to_s)
       end
       path = event.sprintf(@path)
       event_as_string = @codec.encode(event)
