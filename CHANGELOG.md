@@ -1,3 +1,5 @@
+# 3.0.1
+  - Force encoding the gemspec of this plugin into utf-8 to make sure updating all the plugin works see https://github.com/elastic/logstash/issues/5468
 # 3.0.0
   - Use new Event API defined in Logstash 5.x (backwards incompatible change)
 # 2.0.4
