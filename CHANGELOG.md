@@ -1,3 +1,6 @@
+## 3.0.2
+  - Relax constraint on logstash-core-plugin-api to >= 1.60 <= 2.99
+
 # 3.0.1
   - Force encoding the gemspec of this plugin into utf-8 to make sure updating all the plugin works see https://github.com/elastic/logstash/issues/5468
   - Use oracle JDK8 for travis build
