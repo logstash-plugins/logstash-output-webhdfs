@@ -72,6 +72,14 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # `/user/logstash/dt=%{+YYYY-MM-dd}/%{@source_host}-%{+HH}.log`
   config :path, :validate => :string, :required => true
 
+  #The format to use when writing events to the file. This value
+  #supports any string and can include `%{name}` and other dynamic
+  #strings.
+  #
+  # If this setting is omitted, the full json representation of the
+  #event will be written as a single line.
+  config :message_format, :validate => :string
+  
   # Sending data to webhdfs in x seconds intervals.
   config :idle_flush_time, :validate => :number, :default => 1
 
@@ -176,7 +184,11 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
         event.set("[@metadata][thread_id]", Thread.current.object_id.to_s)
       end
       path = event.sprintf(@path)
-      event_as_string = @codec.encode(event)
+      if @message_format
+        event_as_string = @codec.encode(event.sprintf(@message_format))
+      else
+        event_as_string = @codec.encode(event)
+      end
       event_as_string += newline unless event_as_string.end_with? newline
       output_files[path] << event_as_string
     end
