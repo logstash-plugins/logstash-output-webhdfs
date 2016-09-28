@@ -132,7 +132,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
       begin
         test_client(@standby_client)
       rescue => e
-        logger.warn("Could not connect to standby namenode #{@standby_host}. Error: #{e.message}. Trying main webhdfs namenode.")
+        logger.warn("Could not connect to standby namenode #{@standby_client.host}. Error: #{e.message}. Trying main webhdfs namenode.")
       end
     end
     @client = prepare_client(@host, @port, @user)
@@ -144,6 +144,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
         raise
       else
         # If a standby host is configured, try this before giving up.
+        logger.error("Could not connect to #{@client.host}:#{@client.port}. Error: #{e.message}")
         do_failover
       end
     end
@@ -235,7 +236,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     if not @standby_client
       return
     end
-    @logger.warn("Got exception from #{@host}. Switching to #{@standby_host}")
+    @logger.warn("Failing over from #{@client.host}:#{@client.port} to #{@standby_client.host}:#{@standby_client.port}.")
     @client, @standby_client = @standby_client, @client
   end
 
