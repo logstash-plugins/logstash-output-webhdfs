@@ -3,6 +3,8 @@ language: ruby
 cache: bundler
 rvm:
   - jruby-1.7.25
+env:
+  - JRUBY_OPTS=--2.0
 jdk: oraclejdk8
 script:
   - bundle exec rspec spec
