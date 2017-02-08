@@ -23,6 +23,17 @@ module LogStash
       # @return [WebHDFS] An setup client instance
       def prepare_client(host, port, username)
         client = WebHDFS::Client.new(host, port, username)
+        if @use_kerberos_auth
+          require 'gssapi'
+          client.kerberos = true
+          client.kerberos_keytab = @kerberos_keytab
+        end
+        if @use_ssl_auth
+          require 'openssl'
+          client.ssl = true
+          client.ssl_key = OpenSSL::PKey::RSA.new(open(@ssl_key))
+          client.ssl_cert = OpenSSL::X509::Certificate.new(open(@ssl_cert))
+        end
         client.httpfs_mode = @use_httpfs
         client.open_timeout = @open_timeout
         client.read_timeout = @read_timeout

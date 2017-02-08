@@ -111,6 +111,21 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # Set snappy format. One of "stream", "file". Set to stream to be hive compatible.
   config :snappy_format, :validate => ["stream", "file"], :default => "stream"
 
+  # Set kerberos authentication.
+  config :use_kerberos_auth, :validate => :boolean, :default => false
+
+  # Set kerberos keytab file. Note that the gssapi library needs to be available to use this.
+  config :kerberos_keytab, :validate => :string
+
+  # Set ssl authentication. Note that the openssl library needs to be available to use this.
+  config :use_ssl_auth, :validate => :boolean, :default => false
+
+  # Set ssl key file.
+  config :ssl_key, :validate => :string
+
+  # Set ssl cert file.
+  config :ssl_cert, :validate => :string
+
   ## Set codec.
   default :codec, 'line'
 
