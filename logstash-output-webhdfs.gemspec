@@ -2,9 +2,9 @@
 Gem::Specification.new do |s|
 
   s.name            = 'logstash-output-webhdfs'
-  s.version         = '3.0.4'
+  s.version         = '3.0.5'
   s.licenses        = ['Apache License (2.0)']
-  s.summary         = "Plugin to write events to hdfs via webhdfs."
+  s.summary         = "Sends Logstash events to HDFS using the `webhdfs` REST API"
   s.description     = "This gem is a Logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/logstash-plugin install gemname. This gem is not a stand-alone program"
   s.authors         = ["Björn Puttmann, loshkovskyi, Elastic"]
   s.email           = 'b.puttmann@dbap.de'
