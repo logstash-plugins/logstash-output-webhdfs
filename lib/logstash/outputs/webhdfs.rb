@@ -67,6 +67,12 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # The Username for webhdfs.
   config :user, :validate => :string, :required => true
 
+  # The Username for Basic HTTP authentication
+  config :basicauth_user, :validate => :string, :default => nil
+
+  # The Password for Basic HTTP authentication
+  config :basicauth_password, :validate => :string, :default => nil
+
   # The path to the file to write to. Event fields can be used here,
   # as well as date fields in the joda time format, e.g.:
   # `/user/logstash/dt=%{+YYYY-MM-dd}/%{@source_host}-%{+HH}.log`
@@ -116,6 +122,12 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
 
   # Set kerberos keytab file. Note that the gssapi library needs to be available to use this.
   config :kerberos_keytab, :validate => :string
+
+  # Use SSL
+  config :use_ssl, :validate => :boolean, :default => false
+
+  # Verify SSL
+  config :verify_ssl, :validate => :boolean, :default => true
 
   # Set ssl authentication. Note that the openssl library needs to be available to use this.
   config :use_ssl_auth, :validate => :boolean, :default => false

@@ -1,4 +1,5 @@
 require "logstash/namespace"
+require "base64"
 
 module LogStash
   module Outputs
@@ -22,15 +23,31 @@ module LogStash
       # @param username [String] A valid HDFS user
       # @return [WebHDFS] An setup client instance
       def prepare_client(host, port, username)
-        client = WebHDFS::Client.new(host, port, username)
+        if @basicauth_user == nil
+          client = WebHDFS::Client.new(host, port, username)
+	else
+          basicauth = Base64.encode64("#{@basicauth_user}:#{@basicauth_password}").chomp
+          basicauth = { "Authorization" => "Basic #{basicauth}" }
+          client = WebHDFS::Client.new(host, port, username, nil, nil, nil, basicauth)
+        end
         if @use_kerberos_auth
           require 'gssapi'
           client.kerberos = true
           client.kerberos_keytab = @kerberos_keytab
         end
+        if @use_ssl
+          require 'openssl'
+          client.ssl = true
+          if not @verify_ssl
+            client.ssl_verify_mode = :none
+          end
+        end
         if @use_ssl_auth
           require 'openssl'
           client.ssl = true
+          if not @verify_ssl
+            client.ssl_verify_mode = :none
+          end
           client.ssl_key = OpenSSL::PKey::RSA.new(open(@ssl_key))
           client.ssl_cert = OpenSSL::X509::Certificate.new(open(@ssl_cert))
         end
