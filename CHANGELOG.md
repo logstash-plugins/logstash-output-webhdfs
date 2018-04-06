@@ -1,3 +1,6 @@
+## 3.0.6
+  - Docs: Set the default_codec doc attribute.
+
 ## 3.0.5
   - Update gemspec summary
 

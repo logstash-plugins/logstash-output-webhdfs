@@ -1,5 +1,6 @@
 :plugin: webhdfs
 :type: output
+:default_codec: line
 
 ///////////////////////////////////////////
 START - GENERATED VARIABLES, DO NOT EDIT!
@@ -291,3 +292,5 @@ The Username for webhdfs.
 
 [id="plugins-{type}s-{plugin}-common-options"]
 include::{include_path}/{type}.asciidoc[]
+
+:default_codec!:
