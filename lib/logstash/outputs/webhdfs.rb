@@ -230,7 +230,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     # Handle other write errors and retry to write max. @retry_times.
     rescue => e
       # Handle StandbyException and do failover. Still we want to exit if write_tries >= @retry_times.
-      if @standby_client && (e.message.match(/Failed to connect to host/) || e.message.match(/StandbyException/))
+      if @standby_client && (e.message.match(/Failed to connect to host #{@client.host}:#{@client.port}/) || e.message.match(/StandbyException/))
         do_failover
         write_tries += 1
         retry
