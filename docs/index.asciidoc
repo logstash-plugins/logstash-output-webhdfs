@@ -194,7 +194,7 @@ Retry some known webhdfs errors. These may be caused by race conditions when app
   * Value type is <<number,number>>
   * Default value is `5`
 
-How many times should we retry. If retry_times is exceeded, an error will be logged and the event will be discarded.
+How many times should we retry. If retry_times is exceeded, an error will be logged and the event will be discarded. Set to `-1` for infinite retries.
 
 [id="plugins-{type}s-{plugin}-single_file_per_thread"]
 ===== `single_file_per_thread` 
