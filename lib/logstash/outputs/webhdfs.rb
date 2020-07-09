@@ -235,7 +235,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
         write_tries += 1
         retry
       end
-      if write_tries < @retry_times
+      if write_tries < @retry_times || @retry_times == -1
         @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce number of workers. Retrying...")
         sleep(@retry_interval * write_tries)
         write_tries += 1
