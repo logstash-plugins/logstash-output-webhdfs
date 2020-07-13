@@ -76,6 +76,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-port>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-read_timeout>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-retry_interval>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-retry_max_interval>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-retry_known_errors>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-retry_times>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-single_file_per_thread>> |<<boolean,boolean>>|No
@@ -178,7 +179,15 @@ The WebHdfs read timeout, default 30s.
   * Value type is <<number,number>>
   * Default value is `0.5`
 
-How long should we wait between retries.
+Initial interval (in seconds) waited between consecutive retries. Actual interval increases with each retry and is proportional to the number of executed attempts, up to limit given in `retry_max_interval`.
+
+[id="plugins-{type}s-{plugin}-retry_max_interval"]
+===== `retry_max_interval` 
+
+  * Value type is <<number,number>>
+  * Default value is `-1`
+
+Max interval (in seconds) waited between consecutive retries. Set to `-1` for unlimited retry interval.
 
 [id="plugins-{type}s-{plugin}-retry_known_errors"]
 ===== `retry_known_errors` 
