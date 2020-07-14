@@ -222,17 +222,20 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
     # KNOWN_ERROR in ruby's webhdfs client.
     write_tries = 0
     begin
-      # Try to append to already existing file, which will work most of the times.
-      @client.append(path, data)
+      begin
+        # Try to append to already existing file, which will work most of the times.
+        @client.append(path, data)
       # File does not exist, so create it.
-    rescue WebHDFS::FileNotFoundError
-      # Add snappy header if format is "file".
-      if @compression == "snappy" and @snappy_format == "file"
-        @client.create(path, get_snappy_header! + data)
-      elsif
-        @client.create(path, data)
+      rescue WebHDFS::FileNotFoundError
+        # Add snappy header if format is "file".
+        if @compression == "snappy" and @snappy_format == "file"
+          @client.create(path, get_snappy_header! + data)
+        elsif
+          @client.create(path, data)
+        end
       end
-    # Handle other write errors and retry to write max. @retry_times.
+    # Handle write errors other than WebHDFS::FileNotFound and errors encountered during file creation
+    # Retry to write max. @retry_times.
     rescue => e
       if write_tries < @retry_times || @retry_times == -1
         write_tries += 1
