@@ -179,7 +179,7 @@ The WebHdfs read timeout, default 30s.
   * Value type is <<number,number>>
   * Default value is `0.5`
 
-Initial interval (in seconds) waited between consecutive retries. Actual interval increases with each retry and is proportional to the number of executed attempts, up to limit given in `retry_max_interval`.
+Initial interval (in seconds) waited between consecutive retries. Actual interval increases with each retry and is proportional to the number of executed attempts, up to the limit given in `retry_max_interval`.
 
 [id="plugins-{type}s-{plugin}-retry_max_interval"]
 ===== `retry_max_interval` 
