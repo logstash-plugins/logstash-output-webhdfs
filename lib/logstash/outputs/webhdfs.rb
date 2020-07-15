@@ -209,7 +209,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
         path += ".snappy"
         if @snappy_format == "file"
           output = compress_snappy_file(output)
-        elsif
+        else
           output = compress_snappy_stream(output)
         end
       end
@@ -230,7 +230,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
         # Add snappy header if format is "file".
         if @compression == "snappy" and @snappy_format == "file"
           @client.create(path, get_snappy_header! + data)
-        elsif
+        else
           @client.create(path, data)
         end
       end
@@ -243,7 +243,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
         if @standby_client && (e.message.match(/Failed to connect to host #{@client.host}:#{@client.port}/) || e.message.match(/StandbyException/))
           do_failover
         else
-          @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce number of workers. Retrying...")
+          @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce the number of workers. Retrying...")
           sleep_interval = @retry_interval * write_tries
           if @retry_max_interval != -1 && sleep_interval > @retry_max_interval
             sleep_interval = @retry_max_interval
