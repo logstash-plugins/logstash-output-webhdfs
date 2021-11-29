@@ -85,8 +85,10 @@ module LogStash
         data= data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
         buffer = StringIO.new
         buffer.set_encoding(Encoding::ASCII_8BIT)
-        chunks = data.scan(/.{1,#{@snappy_bufsize}}/m)
-        chunks.each do |chunk|
+        idx = 0
+        while idx < data.length
+          chunk = data[idx, @snappy_bufsize]
+          idx += @snappy_bufsize
           compressed = Snappy.deflate(chunk)
           buffer << [chunk.size, compressed.size, compressed].pack("NNa*")
         end
