@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.authors         = ["Björn Puttmann, loshkovskyi, Elastic"]
   s.email           = 'b.puttmann@dbap.de'
   s.homepage        = "http://www.dbap.de"
-  s.require_paths = ["lib"]
+  s.require_paths = ['lib', 'vendor/jar-dependencies']
 
   # Files
   s.files = Dir["lib/**/*","spec/**/*","*.gemspec","*.md","CONTRIBUTORS","Gemfile","LICENSE","NOTICE.TXT", "vendor/jar-dependencies/**/*.jar", "vendor/jar-dependencies/**/*.rb", "VERSION", "docs/**/*"]
