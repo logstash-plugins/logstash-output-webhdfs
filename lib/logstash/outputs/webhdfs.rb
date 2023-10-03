@@ -10,7 +10,7 @@ require "logstash/outputs/webhdfs_helper"
 # ==== Dependencies
 # This plugin has no dependency on jars from hadoop, thus reducing configuration and compatibility
 # problems. It uses the webhdfs gem from Kazuki Ohta and TAGOMORI Satoshi (@see: https://github.com/kzk/webhdfs).
-# Optional dependencies are zlib and snappy gem if you use the compression functionality.
+# Optional dependencies are zlib if you use the compression functionality.
 #
 # ==== Operational Notes
 # If you get an error like:
@@ -133,10 +133,10 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
 
   def register
     load_module('webhdfs')
+
+    # in case of snappy the jars are already included and no wrapper module has to be loaded.
     if @compression == "gzip"
       load_module('zlib')
-    elsif @compression == "snappy"
-      load_module('snappy')
     end
     @main_namenode_failed = false
     @standby_client = false
