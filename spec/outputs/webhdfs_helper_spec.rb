@@ -28,7 +28,7 @@ describe "webhdfs helpers" do
       compressed = subject.compress_snappy_file(sample_data)
 
       #remove the length integer (32 bit) added by compress_snappy_file, 4 bytes, from compressed
-      uncompressed = subject.snappy_inflate(compressed[4..])
+      uncompressed = subject.snappy_inflate(compressed[4..-1])
 
       expect(uncompressed).to eq(sample_data)
     end
