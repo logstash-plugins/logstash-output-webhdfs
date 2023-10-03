@@ -1,7 +1,18 @@
-@files=[]
+# encoding: utf-8
+require "jars/installer"
+require "fileutils"
+require "logstash/devutils/rake"
 
 task :default do
-  system("rake -T")
+  system('rake -vT')
 end
 
-require "logstash/devutils/rake"
+task :vendor do
+  exit(1) unless system './gradlew vendor'
+end
+
+task :clean do
+  ["vendor/jar-dependencies", "Gemfile.lock"].each do |p|
+    FileUtils.rm_rf(p)
+  end
+end

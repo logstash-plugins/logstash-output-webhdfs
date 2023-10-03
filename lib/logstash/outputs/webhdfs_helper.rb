@@ -72,22 +72,39 @@ module LogStash
       # @return [String] the compressed stream of data
       def compress_snappy_file(data)
         # Encode data to ASCII_8BIT (binary)
-        data= data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
+        data = data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
         buffer = StringIO.new('', 'w')
         buffer.set_encoding(Encoding::ASCII_8BIT)
-        compressed = Snappy.deflate(data)
+        compressed = snappy_deflate(data)
         buffer << [compressed.size, compressed].pack("Na*")
         buffer.string
       end
 
+      def snappy_deflate(input)
+        raw_bytes = input.bytes.to_java :byte # to needed to force the instance to be a byte[] and match arguments type in subsequent Snappy call
+
+        compressed = Java::org.xerial.snappy.Snappy.compress(raw_bytes)
+
+        String.from_java_bytes(compressed)
+      end
+
+      def snappy_inflate(input)
+        raw_bytes = input.bytes.to_java :byte # to needed to force the instance to be a byte[] and match arguments type in subsequent Snappy call
+        uncompressed_length = Java::org.xerial.snappy.Snappy.uncompressedLength(raw_bytes, 0, raw_bytes.length)
+        uncompressed = Java::byte[uncompressed_length].new
+        Java::org.xerial.snappy.Snappy.uncompress(raw_bytes, 0, raw_bytes.length, uncompressed, 0)
+
+        String.from_java_bytes(uncompressed)
+      end
+
       def compress_snappy_stream(data)
         # Encode data to ASCII_8BIT (binary)
-        data= data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
+        data = data.encode(Encoding::ASCII_8BIT, "binary", :undef => :replace)
         buffer = StringIO.new
         buffer.set_encoding(Encoding::ASCII_8BIT)
         chunks = data.scan(/.{1,#{@snappy_bufsize}}/m)
         chunks.each do |chunk|
-          compressed = Snappy.deflate(chunk)
+          compressed = snappy_deflate(chunk)
           buffer << [chunk.size, compressed.size, compressed].pack("NNa*")
         end
         return buffer.string

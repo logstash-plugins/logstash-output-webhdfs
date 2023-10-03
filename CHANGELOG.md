@@ -1,3 +1,6 @@
+## 3.1.0
+  - Fix: remove snappy gem as a dependency in favor of directly vendoring the snappy jar. [#46](https://github.com/logstash-plugins/logstash-output-webhdfs/pull/46)
+
 ## 3.0.6
   - Docs: Set the default_codec doc attribute.
 
