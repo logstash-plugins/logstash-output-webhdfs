@@ -95,10 +95,15 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   # Retry some known webhdfs errors. These may be caused by race conditions when appending to same file, etc.
   config :retry_known_errors, :validate => :boolean, :default => true
 
-  # How long should we wait between retries.
+  # Initial interval (in seconds) waited between consecutive retries. Actual interval increases with each retry
+  # and is proportional to the number of executed attempts, up to the limit given in `retry_max_interval`.
   config :retry_interval, :validate => :number, :default => 0.5
 
-  # How many times should we retry. If retry_times is exceeded, an error will be logged and the event will be discarded.
+  # Max interval (in seconds) waited between consecutive retries. Set to `-1` for unlimited retry interval.
+  config :retry_max_interval, :validate => :number, :default => -1
+
+  # How many times should we retry. If retry_times is exceeded, an error will be logged and the event will be discarded. 
+  # Set to `-1` for infinite retries.
   config :retry_times, :validate => :number, :default => 5
 
   # Compress output. One of ['none', 'snappy', 'gzip']
@@ -204,7 +209,7 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
         path += ".snappy"
         if @snappy_format == "file"
           output = compress_snappy_file(output)
-        elsif
+        else
           output = compress_snappy_stream(output)
         end
       end
@@ -213,32 +218,38 @@ class LogStash::Outputs::WebHdfs < LogStash::Outputs::Base
   end
 
   def write_data(path, data)
-    # Retry max_retry times. This can solve problems like leases being hold by another process. Sadly this is no
-    # KNOWN_ERROR in rubys webhdfs client.
+    # Retry max_retry times. This can solve problems like leases being held by another process. Sadly this is no
+    # KNOWN_ERROR in ruby's webhdfs client.
     write_tries = 0
     begin
-      # Try to append to already existing file, which will work most of the times.
-      @client.append(path, data)
+      begin
+        # Try to append to already existing file, which will work most of the times.
+        @client.append(path, data)
       # File does not exist, so create it.
-    rescue WebHDFS::FileNotFoundError
-      # Add snappy header if format is "file".
-      if @compression == "snappy" and @snappy_format == "file"
-        @client.create(path, get_snappy_header! + data)
-      elsif
-        @client.create(path, data)
+      rescue WebHDFS::FileNotFoundError
+        # Add snappy header if format is "file".
+        if @compression == "snappy" and @snappy_format == "file"
+          @client.create(path, get_snappy_header! + data)
+        else
+          @client.create(path, data)
+        end
       end
-    # Handle other write errors and retry to write max. @retry_times.
+    # Handle write errors other than WebHDFS::FileNotFound and errors encountered during file creation
+    # Retry to write max. @retry_times.
     rescue => e
-      # Handle StandbyException and do failover. Still we want to exit if write_tries >= @retry_times.
-      if @standby_client && (e.message.match(/Failed to connect to host/) || e.message.match(/StandbyException/))
-        do_failover
+      if write_tries < @retry_times || @retry_times == -1
         write_tries += 1
-        retry
-      end
-      if write_tries < @retry_times
-        @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce number of workers. Retrying...")
-        sleep(@retry_interval * write_tries)
-        write_tries += 1
+        # Handle StandbyException and do failover.
+        if @standby_client && (e.message.match(/Failed to connect to host #{@client.host}:#{@client.port}/) || e.message.match(/StandbyException/))
+          do_failover
+        else
+          @logger.warn("webhdfs write caused an exception: #{e.message}. Maybe you should increase retry_interval or reduce the number of workers. Retrying...")
+          sleep_interval = @retry_interval * write_tries
+          if @retry_max_interval != -1 && sleep_interval > @retry_max_interval
+            sleep_interval = @retry_max_interval
+          end
+          sleep(sleep_interval)
+        end
         retry
       else
         # Issue error after max retries.
