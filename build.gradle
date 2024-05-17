@@ -18,21 +18,23 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
  * specific language governing permissions and limitations
  * under the License.
  */
-apply plugin: "java"
-apply plugin: 'maven-publish'
-apply plugin: "distribution"
-apply plugin: "idea"
+ buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+plugins {
+  id 'java'
+  id 'maven-publish'
+  id 'distribution'
+  id 'idea' 
+}
 
 group "org.logstash.outputs"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
-}
-
-buildscript {
-    repositories {
-        mavenCentral()
-    }
 }
 
 repositories {
