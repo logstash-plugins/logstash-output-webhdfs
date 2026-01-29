@@ -1,1 +1,2 @@
 *.lock
+lib/logstash-output-webhdfs_jars.rb
