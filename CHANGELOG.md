@@ -1,3 +1,6 @@
+## 3.1.1
+  - Re-packaging the plugin [#49](https://github.com/logstash-plugins/logstash-output-webhdfs/pull/49)
+
 ## 3.1.0
   - Fix: remove snappy gem as a dependency in favor of directly vendoring the snappy jar. [#46](https://github.com/logstash-plugins/logstash-output-webhdfs/pull/46)
 
