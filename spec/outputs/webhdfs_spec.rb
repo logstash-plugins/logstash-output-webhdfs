@@ -54,6 +54,10 @@ describe 'outputs/webhdfs' do
         expect(subject.retry_interval).to eq(0.5)
       end
 
+      it 'should have default retry_max_interval' do
+        expect(subject.retry_max_interval).to eq(-1)
+      end
+
       it 'should have default retry_times' do
         expect(subject.retry_times).to eq(5)
       end
