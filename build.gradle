@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.xerial.snappy:snappy-java:1.1.10.5'
+    implementation 'org.xerial.snappy:snappy-java:1.1.10.12'
 }
 
 task generateGemJarRequiresFile {
