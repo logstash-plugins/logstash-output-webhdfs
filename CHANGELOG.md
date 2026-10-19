@@ -1,3 +1,6 @@
+## 3.1.2
+  - Update `snappy-java` dependency to 1.1.10.12 [#53](https://github.com/logstash-plugins/logstash-output-webhdfs/pull/53)
+
 ## 3.1.1
   - Re-packaging the plugin [#49](https://github.com/logstash-plugins/logstash-output-webhdfs/pull/49)
 
